@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server';
+import { fetchNewsAndStoreInFirestore } from '@/lib/news';
 
 export type SubscriptionState = {
   message: string;
@@ -46,5 +47,17 @@ export async function subscribe(
       message: 'Subscription failed. Please try again later.',
       status: 'error',
     }
+  }
+}
+
+export async function triggerNewsFetch() {
+  console.log('Server Action: Triggering news fetch...');
+  try {
+    await fetchNewsAndStoreInFirestore();
+    console.log('Server Action: News fetch completed successfully.');
+    return { success: true };
+  } catch (error) {
+    console.error('Server Action: News fetch failed:', error);
+    return { success: false, error: (error as Error).message };
   }
 }

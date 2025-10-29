@@ -1,12 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { useEffect, useState, useTransition } from 'react';
+import { collection, onSnapshot, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 import { useFirestore } from '@/firebase';
 import type { NewsArticle } from '@/lib/news';
+import { triggerNewsFetch } from '@/app/actions';
 
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
+import { Button } from '@/components/ui/button';
 
 type NewsPageClientProps = {
     currentCountry?: string;
@@ -16,10 +18,25 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
   const firestore = useFirestore();
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, startFetching] = useTransition();
+
+  const handleInitialFetch = async (articlesQuery: any) => {
+    try {
+        const initialSnapshot = await getDocs(articlesQuery);
+        if (initialSnapshot.empty) {
+            console.log('Firestore is empty, triggering server-side fetch...');
+            startFetching(async () => {
+                await triggerNewsFetch();
+                // After fetching, Firestore listener below will pick up the new data automatically.
+            });
+        }
+    } catch (error) {
+        console.error("Error during initial check:", error);
+    }
+  }
 
   useEffect(() => {
     if (!firestore) {
-        // Firestore might not be available on first render, so we wait.
         return;
     }
     
@@ -28,6 +45,9 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
     const articlesQuery = currentCountry === 'global'
       ? query(collection(firestore, 'news_articles'), orderBy('pubDate', 'desc'), limit(50))
       : query(collection(firestore, 'news_articles'), where('country', '==', currentCountry), orderBy('pubDate', 'desc'), limit(50));
+
+    // Perform an initial check to see if we need to fetch news
+    handleInitialFetch(articlesQuery);
 
     const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
       const fetchedArticles: NewsArticle[] = snapshot.docs.map(doc => ({
@@ -45,8 +65,20 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
     return () => unsubscribe();
   }, [currentCountry, firestore]);
   
-  if (loading) {
+  if (loading || isFetching) {
     return <NewsGridSkeleton />;
+  }
+
+  if (articles.length === 0 && !isFetching) {
+     return (
+      <div className="flex flex-col items-center justify-center h-64 text-center rounded-lg border border-dashed">
+        <h3 className="text-2xl font-bold tracking-tight">No News Found</h3>
+        <p className="text-muted-foreground mb-4">It looks like there are no articles right now. Try fetching them.</p>
+        <Button onClick={() => startFetching(async () => { await triggerNewsFetch() })}>
+            Fetch News
+        </Button>
+      </div>
+    );
   }
 
   return <NewsGrid articles={articles} />;
