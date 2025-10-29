@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
 
 import { useFirestore } from '@/firebase';
@@ -22,24 +22,26 @@ function PageContent() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendingTags, setTrendingTags] = useState<string[]>([]);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-    // Trigger a news fetch check on component mount
-    triggerNewsFetch();
-  }, []);
-
+  
   useEffect(() => {
     if (!firestore) return;
 
-    setLoading(true);
-    let articlesQuery;
-    if (country === 'global') {
-      articlesQuery = query(collection(firestore, 'news_articles'), orderBy('pubDate', 'desc'));
-    } else {
-      articlesQuery = query(collection(firestore, 'news_articles'), where('country', '==', country), orderBy('pubDate', 'desc'));
-    }
+    const articlesCollection = collection(firestore, 'news_articles');
+
+    const fetchInitialNews = async () => {
+      const snapshot = await getDocs(query(articlesCollection, where('country', '==', 'us'))); // Check one source
+      if (snapshot.empty) {
+        console.warn("⚠️ Firestore empty — fetching fallback news...");
+        await triggerNewsFetch();
+      }
+      // The onSnapshot listener will handle displaying the data once it's available
+    };
+
+    fetchInitialNews();
+
+    const articlesQuery = country === 'global'
+      ? query(collection(firestore, 'news_articles'), orderBy('pubDate', 'desc'))
+      : query(collection(firestore, 'news_articles'), where('country', '==', country), orderBy('pubDate', 'desc'));
 
     const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
       const fetchedArticles: NewsArticle[] = [];
@@ -71,10 +73,6 @@ function PageContent() {
 
     return () => unsubscribe();
   }, [country, firestore]);
-
-  if (!isClient) {
-    return <NewsGridSkeleton />;
-  }
 
   return (
     <SidebarProvider>
