@@ -10,12 +10,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const SummarizeArticleInputSchema = z.object({
+const SummarizeArticleInputSchema = z.object({
   articleContent: z.string().describe('The full text content of the news article to be summarized.'),
 });
 export type SummarizeArticleInput = z.infer<typeof SummarizeArticleInputSchema>;
 
-export const SummarizeArticleOutputSchema = z.object({
+const SummarizeArticleOutputSchema = z.object({
   summary: z.string().describe('A concise, easy-to-read summary of the provided article.'),
 });
 export type SummarizeArticleOutput = z.infer<typeof SummarizeArticleOutputSchema>;
