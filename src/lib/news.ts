@@ -1,5 +1,3 @@
-import Parser from 'rss-parser';
-
 export type NewsArticle = {
   id?: string;
   title: string;
@@ -27,43 +25,68 @@ const feeds: FeedSource[] = [
     { sourceName: 'The Hindu', url: 'https://www.thehindu.com/feeder/default.rss', country: 'in' },
 ];
 
-const parser = new Parser();
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-function extractImageUrl(item: Parser.Item): string | undefined {
-    if (item.enclosure && item.enclosure.url) {
-        return item.enclosure.url;
+function extractImageUrl(item: Element): string | undefined {
+    const mediaContent = item.querySelector('media\\:content');
+    if (mediaContent && mediaContent.getAttribute('url')) {
+        return mediaContent.getAttribute('url')!;
     }
-    if (item['media:content'] && item['media:content'].$.url) {
-        return item['media:content'].$.url;
+
+    const enclosure = item.querySelector('enclosure');
+    if (enclosure && enclosure.getAttribute('url')) {
+        return enclosure.getAttribute('url')!;
     }
-    if (item.content) {
-        const match = item.content.match(/<img[^>]+src="([^">]+)"/);
+    
+    const description = item.querySelector('description')?.textContent;
+    if (description) {
+        const match = description.match(/<img[^>]+src="([^">]+)"/);
         if (match) return match[1];
     }
+    
+    const contentEncoded = item.querySelector('content\\:encoded')?.textContent;
+     if (contentEncoded) {
+        const match = contentEncoded.match(/<img[^>]+src="([^">]+)"/);
+        if (match) return match[1];
+    }
+
     return undefined;
 }
 
 async function fetchFeed(feed: FeedSource): Promise<NewsArticle[]> {
   try {
-    const parsedFeed = await parser.parseURL(`${CORS_PROXY}${feed.url}`);
-    if (!parsedFeed?.items) return [];
+    const response = await fetch(`${CORS_PROXY}${feed.url}`);
+    if (!response.ok) {
+      console.error(`Failed to fetch feed from ${feed.url}: ${response.statusText}`);
+      return [];
+    }
+    const text = await response.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'application/xml');
+    const items = Array.from(xml.querySelectorAll('item'));
 
-    return parsedFeed.items.map(item => {
-      if (!item.title || !item.link) return null;
+    return items.map(item => {
+      const title = item.querySelector('title')?.textContent || '';
+      const link = item.querySelector('link')?.textContent || '';
+      if (!title || !link) return null;
+      
+      const summaryContent = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
+      const summary = summaryContent.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...';
+
       return {
-        title: item.title,
-        summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>?/gm, '').substring(0, 150) + '...',
-        content: item.content || item.contentSnippet || '',
-        url: item.link,
-        pubDate: item.pubDate || new Date().toISOString(),
+        title,
+        summary,
+        content: item.querySelector('content\\:encoded')?.textContent || summary,
+        url: link,
+        pubDate: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
         source: feed.sourceName,
         country: feed.country,
-        image: extractImageUrl(item) || `https://picsum.photos/seed/${item.link.length}/600/400`,
+        image: extractImageUrl(item) || `https://picsum.photos/seed/${link.length}/600/400`,
       };
     }).filter((article): article is NewsArticle => article !== null);
+
   } catch (error) {
-    console.error(`Failed to fetch feed from ${feed.url}:`, error);
+    console.error(`Failed to parse feed from ${feed.url}:`, error);
     return [];
   }
 }
