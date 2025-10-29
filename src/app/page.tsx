@@ -31,13 +31,12 @@ export default function Home() {
     const articlesCollection = collection(firestore, 'news_articles');
 
     const fetchInitialNews = async () => {
-      // Check a single country to see if any news exists at all
+      // Check if any news exists at all
       const snapshot = await getDocs(query(articlesCollection, where('country', '==', 'us')));
       if (snapshot.empty) {
         console.warn("⚠️ Firestore empty — fetching fallback news...");
         await triggerNewsFetch();
       }
-      // The onSnapshot listener will handle displaying the data once it's available
     };
 
     fetchInitialNews();
