@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 
-import { useFirestore, initializeFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import type { NewsArticle } from '@/lib/news';
 
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -13,7 +13,6 @@ import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
 import { useSearchParams } from 'next/navigation';
-import { FirebaseProvider } from '@/firebase/provider';
 
 
 function PageContent() {
@@ -93,17 +92,9 @@ function PageContent() {
 
 
 export default function Home() {
-  const { firebaseApp, firestore, auth } = initializeFirebase();
-  
-  if (!firebaseApp) {
-    return <NewsGridSkeleton />;
-  }
-
   return (
-    <FirebaseProvider firebaseApp={firebaseApp} firestore={firestore!} auth={auth!}>
-      <Suspense fallback={<NewsGridSkeleton />}>
-        <PageContent />
-      </Suspense>
-    </FirebaseProvider>
+    <Suspense fallback={<NewsGridSkeleton />}>
+      <PageContent />
+    </Suspense>
   )
 }
