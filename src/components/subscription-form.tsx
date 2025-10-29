@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Mail, Loader, ArrowRight } from 'lucide-react';
 import { subscribe, type SubscriptionState } from '@/app/actions';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ function SubmitButton() {
 
 export function SubscriptionForm() {
   const initialState: SubscriptionState = { message: '', status: 'idle' };
-  const [state, formAction] = useFormState(subscribe, initialState);
+  const [state, formAction] = useActionState(subscribe, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
