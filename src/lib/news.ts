@@ -3,6 +3,14 @@ import Parser from 'rss-parser';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server';
 
+type AIProcessedData = {
+  summary: string;
+  category: string;
+  keywords: string[];
+  hashtags: string[];
+  seo_meta: string;
+};
+
 export type NewsArticle = {
   id?: string;
   title: string;
@@ -13,13 +21,9 @@ export type NewsArticle = {
   source: string;
   country: string;
   image?: string;
-  // AI-generated fields
-  category?: string;
-  keywords?: string[];
-  hashtags?: string[];
-  seo_meta?: string;
   ai_processed?: boolean;
   createdAt?: any;
+  ai_processed_data?: AIProcessedData;
 };
 
 type FeedSource = {

@@ -42,9 +42,10 @@ function PageContent() {
       snapshot.forEach(doc => {
         const data = doc.data() as NewsArticle;
         fetchedArticles.push({ ...data, id: doc.id });
-        if (data.hashtags) {
-          data.hashtags.forEach(tag => {
-            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        if (data.ai_processed_data && data.ai_processed_data.hashtags) {
+          data.ai_processed_data.hashtags.forEach(tag => {
+            const cleanTag = tag.replace('#', '');
+            tagCounts[cleanTag] = (tagCounts[cleanTag] || 0) + 1;
           });
         }
       });
@@ -64,15 +65,6 @@ function PageContent() {
 
     return () => unsubscribe();
   }, [country, firestore]);
-  
-  const [isClient, setIsClient] = useState(false)
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  if (!isClient) {
-    return <Loading />;
-  }
 
   return (
     <SidebarProvider>
@@ -102,9 +94,14 @@ function PageContent() {
 
 
 export default function Home() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
     <Suspense fallback={<Loading />}>
-      <PageContent />
+      {isClient ? <PageContent /> : <Loading />}
     </Suspense>
-  )
+  );
 }
