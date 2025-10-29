@@ -20,21 +20,6 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
   const [loading, setLoading] = useState(true);
   const [isFetching, startFetching] = useTransition();
 
-  const handleInitialFetch = async (articlesQuery: any) => {
-    try {
-        const initialSnapshot = await getDocs(articlesQuery);
-        if (initialSnapshot.empty) {
-            console.log('Firestore is empty, triggering server-side fetch...');
-            startFetching(async () => {
-                await triggerNewsFetch();
-                // After fetching, Firestore listener below will pick up the new data automatically.
-            });
-        }
-    } catch (error) {
-        console.error("Error during initial check:", error);
-    }
-  }
-
   useEffect(() => {
     if (!firestore) {
         return;
@@ -47,7 +32,15 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
       : query(collection(firestore, 'news_articles'), where('country', '==', currentCountry), orderBy('pubDate', 'desc'), limit(50));
 
     // Perform an initial check to see if we need to fetch news
-    handleInitialFetch(articlesQuery);
+    getDocs(articlesQuery).then(initialSnapshot => {
+        if (initialSnapshot.empty) {
+            console.log('Firestore is empty, triggering server-side fetch...');
+            startFetching(async () => {
+                await triggerNewsFetch();
+                // The onSnapshot listener below will automatically pick up the new data.
+            });
+        }
+    });
 
     const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
       const fetchedArticles: NewsArticle[] = snapshot.docs.map(doc => ({
@@ -69,13 +62,13 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
     return <NewsGridSkeleton />;
   }
 
-  if (articles.length === 0 && !isFetching) {
+  if (articles.length === 0) {
      return (
       <div className="flex flex-col items-center justify-center h-64 text-center rounded-lg border border-dashed">
         <h3 className="text-2xl font-bold tracking-tight">No News Found</h3>
         <p className="text-muted-foreground mb-4">It looks like there are no articles right now. Try fetching them.</p>
-        <Button onClick={() => startFetching(async () => { await triggerNewsFetch() })}>
-            Fetch News
+        <Button onClick={() => startFetching(async () => { await triggerNewsFetch() })} disabled={isFetching}>
+            {isFetching ? 'Fetching...' : 'Fetch News'}
         </Button>
       </div>
     );
