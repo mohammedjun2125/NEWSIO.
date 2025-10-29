@@ -1,5 +1,9 @@
-import { Suspense } from 'react';
-import { fetchNews } from '@/lib/news';
+'use client';
+import { Suspense, useEffect, useState } from 'react';
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+
+import { useFirestore, initializeFirebase } from '@/firebase';
+import type { NewsArticle } from '@/lib/news';
 
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -8,20 +12,58 @@ import { SubscriptionForm } from '@/components/subscription-form';
 import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
+import { useSearchParams } from 'next/navigation';
+import { FirebaseProvider } from '@/firebase/provider';
 
-export const revalidate = 3600; // Revalidate every hour
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const country = typeof searchParams?.country === 'string' ? searchParams.country : 'global';
+function PageContent() {
+  const searchParams = useSearchParams();
+  const country = searchParams.get('country') || 'global';
+  const firestore = useFirestore();
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trendingTags, setTrendingTags] = useState<string[]>([]);
 
-  const articles = await fetchNews(country);
+  useEffect(() => {
+    if (!firestore) return;
 
-  // AI logic will be handled by a separate backend process.
-  const trendingTags: string[] = []; // This will be populated from Firestore in a future step.
+    setLoading(true);
+    let articlesQuery;
+    if (country === 'global') {
+      articlesQuery = query(collection(firestore, 'news_articles'), orderBy('pubDate', 'desc'));
+    } else {
+      articlesQuery = query(collection(firestore, 'news_articles'), where('country', '==', country), orderBy('pubDate', 'desc'));
+    }
+
+    const unsubscribe = onSnapshot(articlesQuery, (snapshot) => {
+      const fetchedArticles: NewsArticle[] = [];
+      const tagCounts: Record<string, number> = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data() as NewsArticle;
+        fetchedArticles.push({ ...data, id: doc.id });
+        if (data.hashtags) {
+          data.hashtags.forEach(tag => {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          });
+        }
+      });
+      
+      const sortedTags = Object.entries(tagCounts)
+        .sort(([,a],[,b]) => b-a)
+        .map(([tag]) => tag)
+        .slice(0, 10);
+
+      setTrendingTags(sortedTags);
+      setArticles(fetchedArticles);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching articles:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [country, firestore]);
 
   return (
     <SidebarProvider>
@@ -42,11 +84,26 @@ export default async function Home({
           <SidebarTrigger className="md:hidden" />
         </header>
         <main className="p-4 sm:p-6">
-          <Suspense fallback={<NewsGridSkeleton />}>
-            <NewsGrid articles={articles} />
-          </Suspense>
+          {loading ? <NewsGridSkeleton /> : <NewsGrid articles={articles} />}
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+
+export default function Home() {
+  const { firebaseApp, firestore, auth } = initializeFirebase();
+  
+  if (!firebaseApp) {
+    return <NewsGridSkeleton />;
+  }
+
+  return (
+    <FirebaseProvider firebaseApp={firebaseApp} firestore={firestore!} auth={auth!}>
+      <Suspense fallback={<NewsGridSkeleton />}>
+        <PageContent />
+      </Suspense>
+    </FirebaseProvider>
+  )
 }

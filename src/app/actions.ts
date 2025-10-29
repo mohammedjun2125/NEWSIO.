@@ -1,6 +1,8 @@
 'use server';
 
 import { z } from 'zod';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase/server';
 
 export type SubscriptionState = {
   message: string;
@@ -24,12 +26,25 @@ export async function subscribe(
     };
   }
 
-  // In a real application, you would save this email to your database
-  // or a mailing list service like Mailchimp, ConvertKit, etc.
-  console.log(`New subscription from: ${validatedEmail.data}`);
+  try {
+    const { firestore } = initializeFirebase();
+    const subscriptionsCollection = collection(firestore, 'subscriptions');
+    await addDoc(subscriptionsCollection, {
+      email: validatedEmail.data,
+      subscribedAt: serverTimestamp(),
+    });
+    
+    console.log(`New subscription from: ${validatedEmail.data}`);
 
-  return {
-    message: `Thank you for subscribing! A confirmation has been sent to ${validatedEmail.data}.`,
-    status: 'success',
-  };
+    return {
+      message: `Thank you for subscribing! A confirmation has been sent to ${validatedEmail.data}.`,
+      status: 'success',
+    };
+  } catch (error) {
+    console.error('Subscription failed:', error);
+    return {
+      message: 'Subscription failed. Please try again later.',
+      status: 'error',
+    }
+  }
 }
