@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
 
@@ -13,16 +13,20 @@ import { SubscriptionForm } from '@/components/subscription-form';
 import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
-import Loading from './loading';
 
 
-function PageContent() {
+export default function Home() {
   const searchParams = useSearchParams();
   const country = searchParams.get('country') || 'global';
   const firestore = useFirestore();
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendingTags, setTrendingTags] = useState<string[]>([]);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!firestore) return;
@@ -66,6 +70,10 @@ function PageContent() {
     return () => unsubscribe();
   }, [country, firestore]);
 
+  if (!isClient) {
+    return <NewsGridSkeleton />;
+  }
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -89,19 +97,5 @@ function PageContent() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  );
-}
-
-
-export default function Home() {
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  return (
-    <Suspense fallback={<Loading />}>
-      {isClient ? <PageContent /> : <Loading />}
-    </Suspense>
   );
 }
