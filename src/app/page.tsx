@@ -14,6 +14,7 @@ import { SubscriptionForm } from '@/components/subscription-form';
 import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
+import Loading from './loading';
 
 function PageContent() {
   const searchParams = useSearchParams();
@@ -29,7 +30,8 @@ function PageContent() {
     const articlesCollection = collection(firestore, 'news_articles');
 
     const fetchInitialNews = async () => {
-      const snapshot = await getDocs(query(articlesCollection, where('country', '==', 'us'))); // Check one source
+      // Check a single country to see if any news exists at all
+      const snapshot = await getDocs(query(articlesCollection, where('country', '==', 'us')));
       if (snapshot.empty) {
         console.warn("⚠️ Firestore empty — fetching fallback news...");
         await triggerNewsFetch();
@@ -100,10 +102,9 @@ function PageContent() {
   );
 }
 
-
 export default function Home() {
   return (
-    <Suspense fallback={<NewsGridSkeleton />}>
+    <Suspense fallback={<Loading />}>
       <PageContent />
     </Suspense>
   );
