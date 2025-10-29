@@ -1,15 +1,4 @@
-'use server';
 import Parser from 'rss-parser';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { initializeFirebase, canUseServerSideFirebase } from '@/firebase/server';
-
-type AIProcessedData = {
-  summary: string;
-  category: string;
-  keywords: string[];
-  hashtags: string[];
-  seo_meta: string;
-};
 
 export type NewsArticle = {
   id?: string;
@@ -21,9 +10,6 @@ export type NewsArticle = {
   source: string;
   country: string;
   image?: string;
-  ai_processed?: boolean;
-  createdAt?: any;
-  ai_processed_data?: AIProcessedData;
 };
 
 type FeedSource = {
@@ -42,6 +28,7 @@ const feeds: FeedSource[] = [
 ];
 
 const parser = new Parser();
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 function extractImageUrl(item: Parser.Item): string | undefined {
     if (item.enclosure && item.enclosure.url) {
@@ -57,70 +44,37 @@ function extractImageUrl(item: Parser.Item): string | undefined {
     return undefined;
 }
 
-
-async function fetchAndStoreFeed(feed: FeedSource, db: FirebaseFirestore.Firestore) {
+async function fetchFeed(feed: FeedSource): Promise<NewsArticle[]> {
   try {
-    const parsedFeed = await parser.parseURL(feed.url);
-    const articlesCollection = collection(db, 'news_articles');
+    const parsedFeed = await parser.parseURL(`${CORS_PROXY}${feed.url}`);
+    if (!parsedFeed?.items) return [];
 
-    for (const item of parsedFeed.items) {
-      if (!item.title || !item.link) continue;
-
-      const q = query(articlesCollection, where('url', '==', item.link));
-      const existingDocs = await getDocs(q);
-
-      if (existingDocs.empty) {
-        const article: Omit<NewsArticle, 'id'> = {
-          title: item.title,
-          summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>?/gm, '').substring(0, 150) + '...',
-          content: item.content || item.contentSnippet || '',
-          url: item.link,
-          pubDate: item.pubDate || new Date().toISOString(),
-          source: feed.sourceName,
-          country: feed.country,
-          image: extractImageUrl(item) || `https://picsum.photos/seed/${item.link.length}/600/400`,
-          ai_processed: false,
-          createdAt: serverTimestamp(),
-        };
-        await addDoc(articlesCollection, article);
-      }
-    }
-    console.log(`Fetched and stored articles from ${feed.sourceName}`);
+    return parsedFeed.items.map(item => {
+      if (!item.title || !item.link) return null;
+      return {
+        title: item.title,
+        summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>?/gm, '').substring(0, 150) + '...',
+        content: item.content || item.contentSnippet || '',
+        url: item.link,
+        pubDate: item.pubDate || new Date().toISOString(),
+        source: feed.sourceName,
+        country: feed.country,
+        image: extractImageUrl(item) || `https://picsum.photos/seed/${item.link.length}/600/400`,
+      };
+    }).filter((article): article is NewsArticle => article !== null);
   } catch (error) {
     console.error(`Failed to fetch feed from ${feed.url}:`, error);
+    return [];
   }
 }
 
-export async function shouldFetchNews() {
-  if (!canUseServerSideFirebase()) return false;
+export async function fetchNewsFromRSS(country: string = 'global'): Promise<NewsArticle[]> {
+  const targetFeeds = country === 'global' ? feeds : feeds.filter(f => f.country === country);
   
-  const { firestore: db } = initializeFirebase();
-  const metaRef = doc(db, 'meta', 'news_fetch');
-  const metaSnap = await getDoc(metaRef);
-
-  if (!metaSnap.exists()) {
-    // If we've never fetched, we should fetch.
-    return true;
-  }
-
-  const lastFetch = metaSnap.data().lastFetch.toDate();
-  const oneHour = 60 * 60 * 1000;
-  // If it's been more than an hour, fetch again.
-  return new Date().getTime() - lastFetch.getTime() > oneHour;
-}
-
-export async function fetchNewsAndStoreInFirestore() {
-  if (!canUseServerSideFirebase()) {
-    console.log("Server-side Firebase not configured, skipping news fetch.");
-    return;
-  }
-  const { firestore: db } = initializeFirebase();
-  console.log('Starting RSS fetch...');
+  const allArticles = await Promise.all(targetFeeds.map(feed => fetchFeed(feed)));
   
-  await Promise.all(feeds.map(feed => fetchAndStoreFeed(feed, db)));
-
-  const metaRef = doc(db, 'meta', 'news_fetch');
-  await setDoc(metaRef, { lastFetch: serverTimestamp() });
-  
-  console.log('Finished fetching all RSS feeds.');
+  return allArticles
+    .flat()
+    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+    .slice(0, 50);
 }
