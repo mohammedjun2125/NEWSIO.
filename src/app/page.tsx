@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { fetchNews } from '@/lib/news';
-import { extractTrendingTags } from '@/ai/flows/trending-tags-from-news';
 
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -21,12 +20,8 @@ export default async function Home({
 
   const articles = await fetchNews(country);
 
-  const articleSummaries = articles
-    .map((article) => article.summary || article.title)
-    .filter(Boolean)
-    .slice(0, 20); // Limit summaries to avoid hitting context limits
-
-  const { trendingTags } = await extractTrendingTags({ newsArticles: articleSummaries });
+  // AI logic will be handled by a separate backend process.
+  const trendingTags: string[] = []; // This will be populated from Firestore in a future step.
 
   return (
     <SidebarProvider>
