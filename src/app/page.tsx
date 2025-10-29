@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -6,9 +7,16 @@ import Loading from './loading';
 import { NewsPageClient } from './news-page-client';
 import { TrendingTags } from '@/components/trending-tags';
 import { CountrySelector } from '@/components/country-selector';
+import { shouldFetchNews, fetchNewsAndStoreInFirestore } from '@/lib/news';
 
-export default function Home({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+export default async function Home({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const country = typeof searchParams.country === 'string' ? searchParams.country : 'global';
+
+  // Perform initial data fetch on the server if needed
+  if (await shouldFetchNews()) {
+    console.log('Stale or empty news collection, triggering fetch on server...');
+    await fetchNewsAndStoreInFirestore();
+  }
 
   return (
     <SidebarProvider>

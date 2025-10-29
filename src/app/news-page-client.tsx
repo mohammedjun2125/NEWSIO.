@@ -1,10 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 
 import { useFirestore } from '@/firebase';
 import type { NewsArticle } from '@/lib/news';
-import { triggerNewsFetch } from '@/app/actions';
 
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
@@ -19,21 +18,12 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore) {
+        // Firestore might not be available on first render, so we wait.
+        return;
+    }
     
     setLoading(true);
-
-    const checkAndFetchNews = async () => {
-      const articlesQuery = query(collection(firestore, 'news_articles'), limit(1));
-      const initialSnapshot = await getDocs(articlesQuery);
-      
-      if (initialSnapshot.empty) {
-        console.log("Firestore is empty, triggering news fetch...");
-        await triggerNewsFetch();
-      }
-    };
-
-    checkAndFetchNews();
 
     const articlesQuery = currentCountry === 'global'
       ? query(collection(firestore, 'news_articles'), orderBy('pubDate', 'desc'), limit(50))
@@ -48,7 +38,7 @@ export function NewsPageClient({ currentCountry = 'global' }: NewsPageClientProp
       setArticles(fetchedArticles);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching articles:", error);
+      console.error("Error fetching articles in real-time:", error);
       setLoading(false);
     });
 

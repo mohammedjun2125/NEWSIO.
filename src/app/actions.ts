@@ -3,7 +3,6 @@
 import { z } from 'zod';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server';
-import { fetchNewsAndStoreInFirestore, shouldFetchNews } from '@/lib/news';
 
 export type SubscriptionState = {
   message: string;
@@ -47,20 +46,5 @@ export async function subscribe(
       message: 'Subscription failed. Please try again later.',
       status: 'error',
     }
-  }
-}
-
-export async function triggerNewsFetch() {
-  try {
-    if (await shouldFetchNews()) {
-      console.log('Stale or empty news collection, triggering fetch...');
-      await fetchNewsAndStoreInFirestore();
-      return { success: true, message: 'News fetched successfully.' };
-    }
-    console.log('News is fresh, skipping fetch.');
-    return { success: true, message: 'News is already fresh.' };
-  } catch (error) {
-    console.error('Failed to trigger news fetch:', error);
-    return { success: false, message: 'Failed to fetch news.' };
   }
 }
