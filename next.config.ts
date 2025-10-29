@@ -23,11 +23,35 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https '
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'static.toiimg.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'i.cdn.cnn.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ichef.bbci.co.uk',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.guim.co.uk',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
   devIndicators: {
