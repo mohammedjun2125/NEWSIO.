@@ -1,6 +1,7 @@
 'use client';
 import { Suspense, useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { useSearchParams } from 'next/navigation';
 
 import { useFirestore } from '@/firebase';
 import type { NewsArticle } from '@/lib/news';
@@ -12,7 +13,6 @@ import { SubscriptionForm } from '@/components/subscription-form';
 import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
-import { useSearchParams } from 'next/navigation';
 
 
 function PageContent() {
