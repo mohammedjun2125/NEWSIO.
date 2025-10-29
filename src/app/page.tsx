@@ -2,10 +2,8 @@
 import { Suspense } from 'react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { SubscriptionForm } from '@/components/subscription-form';
 import Loading from './loading';
 import { NewsPageClient } from './news-page-client';
-import { TrendingTags } from '@/components/trending-tags';
 import { CountrySelector } from '@/components/country-selector';
 
 export default function Home({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
@@ -19,10 +17,7 @@ export default function Home({ searchParams }: { searchParams: { [key: string]: 
         </SidebarHeader>
         <SidebarContent className="p-4">
           <div className="space-y-8">
-            <Suspense fallback={<div className="space-y-2"><div className="h-4 w-1/3 bg-muted rounded animate-pulse" /><div className="flex flex-wrap gap-2">{[...Array(8)].map((_, i) => (<div key={i} className="h-6 w-20 bg-muted rounded-full animate-pulse" />))}</div></div>}>
-              <TrendingTags />
-            </Suspense>
-            <SubscriptionForm />
+            {/* Trending tags and subscription form removed as they required a database */}
           </div>
         </SidebarContent>
       </Sidebar>
