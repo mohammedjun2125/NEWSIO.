@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
 
 import { useFirestore } from '@/firebase';
 import type { NewsArticle } from '@/lib/news';
+import { triggerNewsFetch } from '@/app/actions';
 
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -14,8 +15,7 @@ import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
 
-
-export default function Home() {
+function PageContent() {
   const searchParams = useSearchParams();
   const country = searchParams.get('country') || 'global';
   const firestore = useFirestore();
@@ -26,6 +26,8 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    // Trigger a news fetch check on component mount
+    triggerNewsFetch();
   }, []);
 
   useEffect(() => {
@@ -97,5 +99,14 @@ export default function Home() {
         </main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+
+export default function Home() {
+  return (
+    <Suspense fallback={<NewsGridSkeleton />}>
+      <PageContent />
+    </Suspense>
   );
 }

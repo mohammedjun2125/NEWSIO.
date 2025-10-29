@@ -1,6 +1,6 @@
 'use server';
 import Parser from 'rss-parser';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server';
 
 type AIProcessedData = {
@@ -91,11 +91,30 @@ async function fetchAndStoreFeed(feed: FeedSource, db: FirebaseFirestore.Firesto
   }
 }
 
+export async function shouldFetchNews() {
+  const { firestore: db } = initializeFirebase();
+  const metaRef = doc(db, 'meta', 'news_fetch');
+  const metaSnap = await getDoc(metaRef);
+
+  if (!metaSnap.exists()) {
+    // If we've never fetched, we should fetch.
+    return true;
+  }
+
+  const lastFetch = metaSnap.data().lastFetch.toDate();
+  const oneHour = 60 * 60 * 1000;
+  // If it's been more than an hour, fetch again.
+  return new Date().getTime() - lastFetch.getTime() > oneHour;
+}
+
 export async function fetchNewsAndStoreInFirestore() {
   const { firestore: db } = initializeFirebase();
   console.log('Starting RSS fetch...');
   
   await Promise.all(feeds.map(feed => fetchAndStoreFeed(feed, db)));
+
+  const metaRef = doc(db, 'meta', 'news_fetch');
+  await setDoc(metaRef, { lastFetch: serverTimestamp() });
   
   console.log('Finished fetching all RSS feeds.');
 }
