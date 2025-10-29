@@ -13,6 +13,7 @@ import { SubscriptionForm } from '@/components/subscription-form';
 import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
+import Loading from './loading';
 
 
 function PageContent() {
@@ -22,9 +23,14 @@ function PageContent() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendingTags, setTrendingTags] = useState<string[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!firestore) return;
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!firestore || !isClient) return;
 
     setLoading(true);
     let articlesQuery;
@@ -62,7 +68,11 @@ function PageContent() {
     });
 
     return () => unsubscribe();
-  }, [country, firestore]);
+  }, [country, firestore, isClient]);
+
+  if (!isClient) {
+    return <Loading />;
+  }
 
   return (
     <SidebarProvider>
@@ -93,7 +103,7 @@ function PageContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<NewsGridSkeleton />}>
+    <Suspense>
       <PageContent />
     </Suspense>
   )
