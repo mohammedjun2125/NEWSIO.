@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/server';
+import { initializeFirebase, canUseServerSideFirebase } from '@/firebase/server';
 
 import { shouldFetchNews, fetchNewsAndStoreInFirestore, type NewsArticle } from '@/lib/news';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -10,6 +10,7 @@ import Loading from './loading';
 import { NewsPageClient } from './news-page-client';
 
 async function getInitialArticles(country: string): Promise<NewsArticle[]> {
+  if (!canUseServerSideFirebase()) return [];
   const { firestore } = initializeFirebase();
   const articlesQuery = country === 'global'
       ? query(collection(firestore, 'news_articles'), orderBy('pubDate', 'desc'), limit(50))
@@ -20,6 +21,7 @@ async function getInitialArticles(country: string): Promise<NewsArticle[]> {
 }
 
 async function getTrendingTags(): Promise<string[]> {
+    if (!canUseServerSideFirebase()) return [];
   const { firestore } = initializeFirebase();
   const articlesCollection = collection(firestore, 'news_articles');
   const snapshot = await getDocs(query(articlesCollection, orderBy('pubDate', 'desc'), limit(100)));

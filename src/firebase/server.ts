@@ -2,15 +2,24 @@ import { initializeApp, getApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-  : undefined;
+const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+let serviceAccount: object | undefined;
+
+if (serviceAccountString) {
+  try {
+    serviceAccount = JSON.parse(serviceAccountString);
+  } catch (error) {
+    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+  }
+}
+
 
 function initializeFirebase() {
   const apps = getApps();
-  if (!apps.length) {
+  if (!apps.length && serviceAccount) {
     initializeApp({
-      credential: cert(serviceAccount!),
+      credential: cert(serviceAccount),
     });
   }
   const firestore = getFirestore();
@@ -18,4 +27,8 @@ function initializeFirebase() {
   return { firestore, auth };
 }
 
-export { initializeFirebase };
+function canUseServerSideFirebase() {
+    return !!serviceAccount;
+}
+
+export { initializeFirebase, canUseServerSideFirebase };

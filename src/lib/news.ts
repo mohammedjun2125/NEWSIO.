@@ -1,7 +1,7 @@
 'use server';
 import Parser from 'rss-parser';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/server';
+import { initializeFirebase, canUseServerSideFirebase } from '@/firebase/server';
 
 type AIProcessedData = {
   summary: string;
@@ -92,6 +92,8 @@ async function fetchAndStoreFeed(feed: FeedSource, db: FirebaseFirestore.Firesto
 }
 
 export async function shouldFetchNews() {
+  if (!canUseServerSideFirebase()) return false;
+  
   const { firestore: db } = initializeFirebase();
   const metaRef = doc(db, 'meta', 'news_fetch');
   const metaSnap = await getDoc(metaRef);
@@ -108,6 +110,10 @@ export async function shouldFetchNews() {
 }
 
 export async function fetchNewsAndStoreInFirestore() {
+  if (!canUseServerSideFirebase()) {
+    console.log("Server-side Firebase not configured, skipping news fetch.");
+    return;
+  }
   const { firestore: db } = initializeFirebase();
   console.log('Starting RSS fetch...');
   
