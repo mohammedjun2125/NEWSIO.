@@ -1,13 +1,20 @@
 "use client";
 
-import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { initializeFirebase } from "@/firebase";
+import { FirebaseProvider } from "@/firebase/provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const { firebaseApp, firestore, auth } = initializeFirebase();
+
   return (
-    <FirebaseClientProvider>
+    <FirebaseProvider
+      firebaseApp={firebaseApp}
+      firestore={firestore}
+      auth={auth}
+    >
       {children}
       <Toaster />
-    </FirebaseClientProvider>
+    </FirebaseProvider>
   );
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
 
@@ -14,9 +14,8 @@ import { SubscriptionForm } from '@/components/subscription-form';
 import { CountrySelector } from '@/components/country-selector';
 import { NewsGrid } from '@/components/news-grid';
 import { NewsGridSkeleton } from '@/components/news-grid-skeleton';
-import Loading from './loading';
 
-function PageContent() {
+export default function Home() {
   const searchParams = useSearchParams();
   const country = searchParams.get('country') || 'global';
   const firestore = useFirestore();
@@ -26,6 +25,8 @@ function PageContent() {
   
   useEffect(() => {
     if (!firestore) return;
+
+    setLoading(true);
 
     const articlesCollection = collection(firestore, 'news_articles');
 
@@ -99,13 +100,5 @@ function PageContent() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  );
-}
-
-export default function Home() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <PageContent />
-    </Suspense>
   );
 }
