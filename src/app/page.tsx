@@ -23,14 +23,9 @@ function PageContent() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendingTags, setTrendingTags] = useState<string[]>([]);
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (!firestore || !isClient) return;
+    if (!firestore) return;
 
     setLoading(true);
     let articlesQuery;
@@ -68,7 +63,12 @@ function PageContent() {
     });
 
     return () => unsubscribe();
-  }, [country, firestore, isClient]);
+  }, [country, firestore]);
+  
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   if (!isClient) {
     return <Loading />;
@@ -103,7 +103,7 @@ function PageContent() {
 
 export default function Home() {
   return (
-    <Suspense>
+    <Suspense fallback={<Loading />}>
       <PageContent />
     </Suspense>
   )
