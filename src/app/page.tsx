@@ -8,7 +8,8 @@ import type { NewsArticle } from '@/lib/news';
 import { NewsGrid } from '@/components/news-grid';
 
 async function NewsFeed({ country }: { country: string }) {
-  const host = headers().get('host') || 'localhost:9002';
+  const headerValues = headers();
+  const host = headerValues.get('host') || 'localhost:9002';
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
 
@@ -37,8 +38,13 @@ async function NewsFeed({ country }: { country: string }) {
   return <NewsGrid articles={articles} />;
 }
 
-export default function Home({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  const country = typeof searchParams.country === 'string' ? searchParams.country : 'global';
+export default function Home({ searchParams, params }: { 
+    searchParams: { [key: string]: string | string[] | undefined },
+    params: { country: string } 
+}) {
+  const countryFromPath = params.country;
+  const countryFromQuery = typeof searchParams.country === 'string' ? searchParams.country : null;
+  const country = countryFromPath || countryFromQuery || 'global';
 
   return (
     <SidebarProvider>
