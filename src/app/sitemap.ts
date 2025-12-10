@@ -3,7 +3,9 @@ import { MetadataRoute } from 'next';
 const countries = ['us', 'uk', 'in'];
  
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://your-production-domain.com';
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
 
   const countryPages = countries.map((country) => ({
     url: `${baseUrl}/${country}`,
