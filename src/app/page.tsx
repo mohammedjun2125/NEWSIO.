@@ -3,11 +3,24 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, 
 import { Logo } from '@/components/logo';
 import Loading from './loading';
 import { CountrySelector } from '@/components/country-selector';
-import { fetchNewsFromRSS, NewsArticle } from '@/lib/news';
+import type { NewsArticle } from '@/lib/news';
 import { NewsGrid } from '@/components/news-grid';
 
 async function NewsFeed({ country }: { country: string }) {
-  const articles = await fetchNewsFromRSS(country);
+  // Fetch directly on the server using an absolute URL
+  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:9002';
+  const articles = await fetch(`${baseUrl}/api/news?country=${country}`)
+    .then(res => {
+      if (!res.ok) {
+        console.error(`Failed to fetch news from API: ${res.statusText}`);
+        return [];
+      }
+      return res.json();
+    })
+    .catch(error => {
+      console.error(`Failed to fetch news from API:`, error);
+      return [];
+    });
   
   if (!articles || articles.length === 0) {
     return (
