@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { headers } from 'next/headers';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import Loading from './loading';
@@ -7,8 +8,10 @@ import type { NewsArticle } from '@/lib/news';
 import { NewsGrid } from '@/components/news-grid';
 
 async function NewsFeed({ country }: { country: string }) {
-  // Fetch directly on the server using an absolute URL
-  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:9002';
+  const host = headers().get('host') || 'localhost:9002';
+  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+
   const articles = await fetch(`${baseUrl}/api/news?country=${country}`)
     .then(res => {
       if (!res.ok) {
