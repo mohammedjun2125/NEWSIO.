@@ -3,8 +3,12 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'NEWSIO - Your Futuristic News Feed',
-  description: 'Stay updated with the latest news from around the world with a futuristic UI.',
+  title: {
+    default: 'NEWSIO - Your Futuristic News Feed',
+    template: '%s | NEWSIO',
+  },
+  description: 'Stay updated with the latest breaking news and headlines from around the world with a futuristic, fast, and SEO-friendly news feed.',
+  keywords: ['news', 'world news', 'breaking news', 'headlines', 'latest news'],
 };
 
 export default function RootLayout({
