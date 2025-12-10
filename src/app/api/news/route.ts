@@ -28,7 +28,6 @@ const feeds: FeedSource[] = [
     { sourceName: 'The Hindu', url: 'https://www.thehindu.com/feeder/default.rss', country: 'in' },
 ];
 
-// rss-parser has a slightly different output format for images
 function extractImageUrl(item: Parser.Item): string | undefined {
     if (item.enclosure && item.enclosure.url) {
         return item.enclosure.url;
@@ -37,8 +36,18 @@ function extractImageUrl(item: Parser.Item): string | undefined {
         return item['media:content'].$.url;
     }
      if (item.content) {
-        const match = item.content.match(/<img[^>]+src="([^">]+)"/);
-        if (match) return match[1];
+        const imageRegexs = [
+          /<img[^>]+src="([^">]+)"/,
+          /<figure[^>]*>.*?<img[^>]+src="([^">]+)"/s,
+          /image"\s*:\s*"([^"]+)"/,
+        ];
+
+        for (const regex of imageRegexs) {
+            const match = item.content.match(regex);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
     }
     return undefined;
 }
