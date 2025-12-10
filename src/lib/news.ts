@@ -55,7 +55,7 @@ function extractImageUrl(item: Element): string | undefined {
 
 async function fetchFeed(feed: FeedSource): Promise<NewsArticle[]> {
   try {
-    const response = await fetch(`${CORS_PROXY}${feed.url}`);
+    const response = await fetch(`${CORS_PROXY}${encodeURIComponent(feed.url)}`);
     if (!response.ok) {
       console.error(`Failed to fetch feed from ${feed.url}: ${response.statusText}`);
       return [];
@@ -63,6 +63,22 @@ async function fetchFeed(feed: FeedSource): Promise<NewsArticle[]> {
     const text = await response.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'application/xml');
+    
+    const errorNode = xml.querySelector('parsererror');
+    if (errorNode) {
+      console.error(`Failed to parse XML from ${feed.url}:`, errorNode.textContent);
+      // Attempt to handle cases where allorigins returns a JSON error
+      try {
+        const jsonError = JSON.parse(text);
+        if (jsonError?.contents?.includes('Not found')) {
+            console.error(`CORS proxy reported 'Not Found' for URL: ${feed.url}`);
+        }
+      } catch (e) {
+        // Not a JSON error, stick with parsererror
+      }
+      return [];
+    }
+
     const items = Array.from(xml.querySelectorAll('item'));
 
     return items.map(item => {
@@ -86,7 +102,7 @@ async function fetchFeed(feed: FeedSource): Promise<NewsArticle[]> {
     }).filter((article): article is NewsArticle => article !== null);
 
   } catch (error) {
-    console.error(`Failed to parse feed from ${feed.url}:`, error);
+    console.error(`Failed to fetch or parse feed from ${feed.url}:`, error);
     return [];
   }
 }
