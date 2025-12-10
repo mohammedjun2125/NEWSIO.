@@ -64,7 +64,7 @@ async function fetchFeed(parser: Parser, feed: FeedSource): Promise<NewsArticle[
         pubDate: item.pubDate || new Date().toISOString(),
         source: feed.sourceName,
         country: feed.country,
-        image: extractImageUrl(item) || `https://picsum.photos/seed/${link.length}/600/400`,
+        image: extractImageUrl(item),
       };
     }).filter((article): article is NewsArticle => article !== null);
 
