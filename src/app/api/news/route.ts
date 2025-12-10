@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import Parser from 'rss-parser';
 
 type NewsArticle = {
   id?: string;
@@ -27,65 +28,40 @@ const feeds: FeedSource[] = [
     { sourceName: 'The Hindu', url: 'https://www.thehindu.com/feeder/default.rss', country: 'in' },
 ];
 
-function extractImageUrl(item: Element): string | undefined {
-    const mediaContent = item.querySelector('media\\:content');
-    if (mediaContent && mediaContent.getAttribute('url')) {
-        return mediaContent.getAttribute('url')!;
+// rss-parser has a slightly different output format for images
+function extractImageUrl(item: Parser.Item): string | undefined {
+    if (item.enclosure && item.enclosure.url) {
+        return item.enclosure.url;
     }
-
-    const enclosure = item.querySelector('enclosure');
-    if (enclosure && enclosure.getAttribute('url')) {
-        return enclosure.getAttribute('url')!;
+    if (item['media:content'] && item['media:content'].$.url) {
+        return item['media:content'].$.url;
     }
-    
-    const description = item.querySelector('description')?.textContent;
-    if (description) {
-        const match = description.match(/<img[^>]+src="([^">]+)"/);
+     if (item.content) {
+        const match = item.content.match(/<img[^>]+src="([^">]+)"/);
         if (match) return match[1];
     }
-    
-    const contentEncoded = item.querySelector('content\\:encoded')?.textContent;
-     if (contentEncoded) {
-        const match = contentEncoded.match(/<img[^>]+src="([^">]+)"/);
-        if (match) return match[1];
-    }
-
     return undefined;
 }
 
-async function fetchFeed(feed: FeedSource): Promise<NewsArticle[]> {
+
+async function fetchFeed(parser: Parser, feed: FeedSource): Promise<NewsArticle[]> {
   try {
-    const response = await fetch(feed.url, { next: { revalidate: 3600 } }); // Revalidate every hour
-    if (!response.ok) {
-      console.error(`Failed to fetch feed from ${feed.url}: ${response.statusText}`);
-      return [];
-    }
-    const text = await response.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, 'application/xml');
+    const feedData = await parser.parseURL(feed.url);
     
-    const errorNode = xml.querySelector('parsererror');
-    if (errorNode) {
-      console.error(`Failed to parse XML from ${feed.url}:`, errorNode.textContent);
-      return [];
-    }
-
-    const items = Array.from(xml.querySelectorAll('item'));
-
-    return items.map(item => {
-      const title = item.querySelector('title')?.textContent || '';
-      const link = item.querySelector('link')?.textContent || '';
+    return feedData.items.map(item => {
+      const title = item.title || '';
+      const link = item.link || '';
       if (!title || !link) return null;
       
-      const summaryContent = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
+      const summaryContent = item.contentSnippet || item.content || '';
       const summary = summaryContent.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...';
 
       return {
         title,
         summary,
-        content: item.querySelector('content\\:encoded')?.textContent || summary,
+        content: item.content || summary,
         url: link,
-        pubDate: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
+        pubDate: item.pubDate || new Date().toISOString(),
         source: feed.sourceName,
         country: feed.country,
         image: extractImageUrl(item) || `https://picsum.photos/seed/${link.length}/600/400`,
@@ -104,7 +80,13 @@ export async function GET(request: Request) {
   
   const targetFeeds = country === 'global' ? feeds : feeds.filter(f => f.country === country);
   
-  const allArticles = await Promise.all(targetFeeds.map(feed => fetchFeed(feed)));
+  const parser = new Parser({
+      customFields: {
+        item: [['media:content', 'media:content', {keepArray: false}]],
+      }
+  });
+
+  const allArticles = await Promise.all(targetFeeds.map(feed => fetchFeed(parser, feed)));
   
   const sortedArticles = allArticles
     .flat()

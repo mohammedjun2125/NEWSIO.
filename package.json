@@ -45,6 +45,7 @@
     "react-dom": "latest",
     "react-hook-form": "latest",
     "recharts": "latest",
+    "rss-parser": "latest",
     "tailwind-merge": "latest",
     "tailwindcss-animate": "latest"
   },
