@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import type { NewsArticle } from '@/lib/news';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Rss, Calendar, Globe } from 'lucide-react';
 
 type NewsCardProps = {
@@ -13,36 +12,33 @@ type NewsCardProps = {
 
 export function NewsCard({ article }: NewsCardProps) {
   return (
-    <Card className="flex flex-col h-full bg-card/50 hover:bg-card/90 transition-colors duration-300 transform hover:-translate-y-1 motion-reduce:transition-none motion-reduce:transform-none">
-      {article.image && (
-        <a href={article.url} target="_blank" rel="noopener noreferrer" className="block">
-          <div className="relative w-full h-48">
+    <a href={article.url} target="_blank" rel="noopener noreferrer" className="block group">
+      <Card className="flex flex-col md:flex-row h-full bg-card hover:bg-secondary/50 transition-all duration-300 transform hover:shadow-lg motion-reduce:transition-none motion-reduce:transform-none overflow-hidden">
+        {article.image && (
+          <div className="relative w-full md:w-1/3 h-48 md:h-auto">
             <Image
               src={article.image}
               alt={article.title}
               fill
-              className="object-cover rounded-t-lg"
+              className="object-cover"
               data-ai-hint="news article"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 768px) 100vw, 33vw"
             />
           </div>
-        </a>
-      )}
-      <CardHeader>
-        <CardTitle className="text-lg font-bold leading-tight font-headline">
-          <a href={article.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-            {article.title}
-          </a>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-sm text-muted-foreground line-clamp-4">
-          {article.summary}
-        </p>
-      </CardContent>
-      <CardFooter className="flex-col items-start gap-4">
-        <div className="flex justify-between w-full items-center">
-            <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+        )}
+        <div className={`flex flex-col flex-1 ${!article.image ? 'w-full' : 'md:w-2/3'}`}>
+          <CardHeader>
+            <CardTitle className="text-xl font-bold leading-tight font-headline group-hover:text-primary transition-colors">
+              {article.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <p className="text-sm text-muted-foreground line-clamp-3">
+              {article.summary}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <div className="flex justify-between w-full items-center text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                     <Globe className="w-3 h-3"/>
                     <span>{article.source}</span>
@@ -53,17 +49,14 @@ export function NewsCard({ article }: NewsCardProps) {
                     {formatDistanceToNow(new Date(article.pubDate), { addSuffix: true })}
                     </time>
                 </div>
-            </div>
-            <div className="flex gap-2">
-              <Button asChild variant="ghost" size="sm">
-                <a href={article.url} target="_blank" rel="noopener noreferrer">
+                 <div className="flex items-center gap-1">
                     Read More
-                    <Rss className="w-4 h-4 ml-2" />
-                </a>
-              </Button>
+                    <Rss className="w-3 h-3" />
+                </div>
             </div>
+          </CardFooter>
         </div>
-      </CardFooter>
-    </Card>
+      </Card>
+    </a>
   );
 }

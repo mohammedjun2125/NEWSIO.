@@ -16,7 +16,7 @@ export function NewsGrid({ articles }: NewsGridProps) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {articles.map((article, index) => (
         <NewsCard key={`${article.url}-${index}`} article={article} />
       ))}
