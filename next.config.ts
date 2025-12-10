@@ -52,6 +52,12 @@ const nextConfig: NextConfig = {
         hostname: 'i.guim.co.uk',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static01.nyt.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
