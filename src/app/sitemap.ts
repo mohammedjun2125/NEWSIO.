@@ -3,9 +3,7 @@ import { MetadataRoute } from 'next';
 const countries = ['us', 'uk', 'in'];
  
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` 
-    : 'http://localhost:9002';
+  const baseUrl = 'https://your-production-domain.com';
 
   const countryPages = countries.map((country) => ({
     url: `${baseUrl}/${country}`,
