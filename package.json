@@ -38,7 +38,7 @@
     "dotenv": "latest",
     "embla-carousel-react": "latest",
     "lucide-react": "latest",
-    "next": "latest",
+    "next": "15.3.4",
     "patch-package": "latest",
     "react": "latest",
     "react-day-picker": "latest",
