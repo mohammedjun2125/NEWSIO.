@@ -58,6 +58,12 @@ const nextConfig: NextConfig = {
         hostname: 'static01.nyt.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'th-i.thgim.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
